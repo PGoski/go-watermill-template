@@ -2,13 +2,21 @@ const {GoGenerator} = require('@asyncapi/modelina');
 const { File } = require('@asyncapi/generator-react-sdk');
 
 export default async function({ asyncapi }) {
+  let importTime = false;
   const generator = new GoGenerator({ presets: [
     {
       struct: {
         field({ fieldName, field, renderer, type }) {
           const formattedFieldName = renderer.nameField(fieldName, field);
-          const fieldType = renderer.renderType(field);
-          return `${ formattedFieldName } ${ fieldType } \`json:"${ fieldName }"\``;
+          let fieldType = renderer.renderType(field);
+          const format = field.getFromOriginalInput('format');
+          if ('date-time' === format) {
+            fieldType = '*time.Time';
+            importTime = true;
+          }
+          const description =  field.getFromOriginalInput('description');
+
+          return `${ formattedFieldName } ${ fieldType } \`json:"${ fieldName }"\`  ${ description? `// ${  description}` : ''}`;
         },
       }
     }
@@ -20,7 +28,7 @@ export default async function({ asyncapi }) {
 
   import (
     "encoding/json"
-
+    ${ importTime? '"time"': '' }
     "github.com/ThreeDotsLabs/watermill/message"
   )
   `;
